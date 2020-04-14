@@ -4,9 +4,31 @@ import (
 	"bytes"
 	crand "crypto/rand"
 	"fmt"
+	"net"
 	"reflect"
 	"testing"
 )
+
+func TestNextIP(t *testing.T) {
+	r := New()
+	// Insert 1000 IPs
+	for i := 0; i < 10; i++ {
+		gen := generateIP()
+		r.Insert(gen, 64)
+	}
+	// Check min and max
+	outMin, _, _ := r.Minimum()
+	fmt.Println(net.IP(outMin))
+	outMax, _, _ := r.Maximum()
+	fmt.Println(net.IP(outMax))
+	// Check size
+	fmt.Println(r.size)
+	// Dump tree
+	r.Walk(func(k []byte, v interface{}) bool {
+		fmt.Println(net.IP(k))
+		return false
+	})
+}
 
 func TestRadix(t *testing.T) {
 	var min, max []byte
@@ -361,6 +383,16 @@ func BenchmarkInsertIPv6(b *testing.B) {
 	}
 }
 
+func BenchmarkInsertMapIPv6(b *testing.B) {
+	buf := make([]byte, 16)
+	m := make(map[buf]bool)
+	for i := 0; i < b.N; i++ {
+		if _, err := crand.Read(buf); err != nil {
+			panic(fmt.Errorf("failed to read random bytes: %v", err))
+		}
+		m[buf] = true
+	}
+}
 func BenchmarkLookupIPv4(b *testing.B) {
 	buf := make([]byte, 4)
 	radix := New()
