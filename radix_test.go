@@ -340,6 +340,63 @@ func TestWalkPath(t *testing.T) {
 	}
 }
 
+func BenchmarkInsertIPv4(b *testing.B) {
+	buf := make([]byte, 16)
+
+	radix := New()
+
+	for i := 0; i < b.N; i++ {
+		if _, err := crand.Read(buf); err != nil {
+			panic(fmt.Errorf("failed to read random bytes: %v", err))
+		}
+		radix.Insert(buf, 64)
+	}
+}
+func BenchmarkInsertIPv6(b *testing.B) {
+	radix := New()
+
+	for i := 0; i < b.N; i++ {
+		gen := generateIP()
+		radix.Insert(gen, 64)
+	}
+}
+
+func BenchmarkLookupIPv4(b *testing.B) {
+	buf := make([]byte, 4)
+	radix := New()
+
+	for i := 0; i < 1000000; i++ {
+		if _, err := crand.Read(buf); err != nil {
+			panic(fmt.Errorf("failed to read random bytes: %v", err))
+		}
+		radix.Insert(buf, 64)
+	}
+	for i := 0; i < b.N; i++ {
+		if _, err := crand.Read(buf); err != nil {
+			panic(fmt.Errorf("failed to read random bytes: %v", err))
+		}
+		radix.Get(buf)
+	}
+}
+func BenchmarkLookupIPv6(b *testing.B) {
+	buf := make([]byte, 16)
+	radix := New()
+
+	for i := 0; i < 1000000; i++ {
+		if _, err := crand.Read(buf); err != nil {
+			panic(fmt.Errorf("failed to read random bytes: %v", err))
+		}
+		radix.Insert(buf, 64)
+	}
+
+	for i := 0; i < b.N; i++ {
+		if _, err := crand.Read(buf); err != nil {
+			panic(fmt.Errorf("failed to read random bytes: %v", err))
+		}
+		radix.Get(buf)
+	}
+}
+
 // generateIP is used to generate a random IP
 func generateIP() []byte {
 	buf := make([]byte, 16)
