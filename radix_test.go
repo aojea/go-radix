@@ -417,6 +417,34 @@ func BenchmarkLookupIPv6(b *testing.B) {
 	}
 }
 
+func BenchmarkLookupMapIPv4(b *testing.B) {
+	m := make(map[string]bool)
+
+	for i := 0; i < 1000000; i++ {
+		gen := generateIPv4()
+		m[string(gen)] = true
+	}
+	for i := 0; i < b.N; i++ {
+		gen := generateIPv4()
+		if m[string(gen)] {
+		}
+	}
+}
+func BenchmarkLookupMapIPv6(b *testing.B) {
+	m := make(map[string]bool)
+
+	for i := 0; i < 1000000; i++ {
+		gen := generateIPv6()
+		m[string(gen)] = true
+	}
+
+	for i := 0; i < b.N; i++ {
+		gen := generateIPv6()
+		if m[string(gen)] {
+		}
+	}
+}
+
 // generateIPv4 is used to generate a random IP
 func generateIPv4() net.IP {
 	buf := make([]byte, 4)
