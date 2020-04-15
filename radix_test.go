@@ -13,8 +13,8 @@ func TestNextIP(t *testing.T) {
 	r := New()
 	// Insert 1000 IPs
 	for i := 0; i < 10; i++ {
-		gen := generateIP()
-		r.Insert(gen, 64)
+		gen := generateIPv6()
+		r.Insert(gen.To16(), 64)
 	}
 	// Check min and max
 	outMin, _, _ := r.Minimum()
@@ -34,7 +34,7 @@ func TestRadix(t *testing.T) {
 	var min, max []byte
 	inp := make(map[string]interface{})
 	for i := 0; i < 1000; i++ {
-		gen := generateIP()
+		gen := generateIPv6()
 		inp[string(gen)] = i
 		if bytes.Compare(gen, min) < 0 || i == 0 {
 			min = gen
@@ -363,82 +363,87 @@ func TestWalkPath(t *testing.T) {
 }
 
 func BenchmarkInsertIPv4(b *testing.B) {
-	buf := make([]byte, 16)
-
 	radix := New()
-
 	for i := 0; i < b.N; i++ {
-		if _, err := crand.Read(buf); err != nil {
-			panic(fmt.Errorf("failed to read random bytes: %v", err))
-		}
-		radix.Insert(buf, 64)
+		gen := generateIPv4()
+		radix.Insert(gen.To16(), 64)
 	}
 }
 func BenchmarkInsertIPv6(b *testing.B) {
 	radix := New()
-
 	for i := 0; i < b.N; i++ {
-		gen := generateIP()
-		radix.Insert(gen, 64)
+		gen := generateIPv6()
+		radix.Insert(gen.To16(), 64)
 	}
 }
 
-func BenchmarkInsertMapIPv6(b *testing.B) {
-	buf := make([]byte, 16)
-	m := make(map[buf]bool)
+func BenchmarkInsertMapIPv4(b *testing.B) {
+	m := make(map[string]bool)
 	for i := 0; i < b.N; i++ {
-		if _, err := crand.Read(buf); err != nil {
-			panic(fmt.Errorf("failed to read random bytes: %v", err))
-		}
-		m[buf] = true
+		gen := generateIPv4()
+		m[string(gen)] = true
+	}
+}
+func BenchmarkInsertMapIPv6(b *testing.B) {
+	m := make(map[string]bool)
+	for i := 0; i < b.N; i++ {
+		gen := generateIPv6()
+		m[string(gen)] = true
 	}
 }
 func BenchmarkLookupIPv4(b *testing.B) {
-	buf := make([]byte, 4)
 	radix := New()
 
 	for i := 0; i < 1000000; i++ {
-		if _, err := crand.Read(buf); err != nil {
-			panic(fmt.Errorf("failed to read random bytes: %v", err))
-		}
-		radix.Insert(buf, 64)
+		gen := generateIPv4()
+		radix.Insert(gen.To4(), 64)
 	}
 	for i := 0; i < b.N; i++ {
-		if _, err := crand.Read(buf); err != nil {
-			panic(fmt.Errorf("failed to read random bytes: %v", err))
-		}
-		radix.Get(buf)
+		gen := generateIPv4()
+		radix.Get(gen.To4())
 	}
 }
 func BenchmarkLookupIPv6(b *testing.B) {
-	buf := make([]byte, 16)
 	radix := New()
 
 	for i := 0; i < 1000000; i++ {
-		if _, err := crand.Read(buf); err != nil {
-			panic(fmt.Errorf("failed to read random bytes: %v", err))
-		}
-		radix.Insert(buf, 64)
+		gen := generateIPv6()
+		radix.Insert(gen.To16(), 64)
 	}
 
 	for i := 0; i < b.N; i++ {
-		if _, err := crand.Read(buf); err != nil {
-			panic(fmt.Errorf("failed to read random bytes: %v", err))
-		}
-		radix.Get(buf)
+		gen := generateIPv6()
+		radix.Get(gen.To16())
 	}
 }
 
-// generateIP is used to generate a random IP
-func generateIP() []byte {
+// generateIPv4 is used to generate a random IP
+func generateIPv4() net.IP {
+	buf := make([]byte, 4)
+	if _, err := crand.Read(buf); err != nil {
+		panic(fmt.Errorf("failed to read random bytes: %v", err))
+	}
+	// let's fix the prefix to emulate a /8 network
+	// 2001:0db8:1:2::/64
+	buf[0] = 0x10
+	return net.IP(buf)
+}
+
+// generateIPv6 is used to generate a random IP
+func generateIPv6() net.IP {
 	buf := make([]byte, 16)
 	if _, err := crand.Read(buf); err != nil {
 		panic(fmt.Errorf("failed to read random bytes: %v", err))
 	}
+	// let's fix the prefix to emulate a /64 network
+	// 2001:0db8:1:2::/64
 	buf[0] = 0x20
 	buf[1] = 0x01
 	buf[2] = 0x0d
 	buf[3] = 0xb8
-
-	return buf
+	buf[4] = 0x00
+	buf[5] = 0x01
+	buf[6] = 0x00
+	buf[7] = 0x02
+	return net.IP(buf)
 }
